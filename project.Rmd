@@ -66,12 +66,46 @@ The plot shows that the lower the complexity parameter, the higher the accuracy,
 
 The next model tried is the boosted tree model ('gbm' method in Caret). This model can be tuned using the number of trees (for boosting) and the depth/complexity of the tree. 
 
+```{r}
 gbmGrid <-  expand.grid(interaction.depth = 1:9,
                         n.trees = (2:5)*50,
                         shrinkage = 0.1,
                         n.minobsinnode = 10)
 modelGbm <- train(classe ~ ., data = trainTransformed, method = "gbm", trControl = controlFunc, verbose = FALSE, tuneGrid = gbmGrid)
+ggplot(modelGbm)
+```
 
+As the plot clearly shows that the deeper the tree the better the results. However, it does stabilize at a depth of 7. Same goes for the number of trees used for boosting. At 200 trees the results are good (the model should not be too complicated, to avoid overfitting). Therefore the final model should be with depth 7 and 200 trees, with the following results.
+
+```{r}
+gbmGrid <-  expand.grid(interaction.depth = 7,
+                        n.trees = 200,
+                        shrinkage = 0.1,
+                        n.minobsinnode = 10)
+modelGbm <- train(classe ~ ., data = trainTransformed, method = "gbm", trControl = controlFunc, verbose = FALSE, tuneGrid = gbmGrid)
+modelGbm$finalModel
+```
+
+The final model that will be tried is the random forest model. 
+```{r}
 modelRf <- train(classe ~ ., data = trainTransformed, method = "rf", trControl = controlFunc, tuneLength = 5)
+ggplot(modelRf)
+```
+
+It shows that the random forest model has the highest accuracy. But it also shows that the estimated accuracy is not really influenced by tuning the parameter. This indicates that the random forests model is better, and most likely more robust. The estimated results for the final model are as follows:
+
+```{r}
+modelRf$finalModel
+```
+
+# Results
+To see what the results are for the final chosen model with Random Forest we validate it with the validation set. This is the out of sample test, and gives a more accurate accuracy number, since it is new data to the model. An overfitted model would perform poorly on new data.
+
+```{r}
+validationPredict <- predict(modelRf, validationTransformed[,-53])
+confusionMatrix(validationPredict, validationTransformed$classe)
+```
+
+
 
 
