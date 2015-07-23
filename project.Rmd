@@ -1,0 +1,77 @@
+---
+title: "Practical Machine Learning project"
+author: "Geerten Doornenbal"
+date: "Wednesday, July 22, 2015"
+output: html_document
+---
+# Summary
+This is a report of the assignment of the Coursera Practical Machine Learning course project. The goal is to build a model that predicts if a weight lifting excercise is executed correctly or not. This prediction is done using sensors attached to the body.
+
+# Data
+The data consists of results from 4 different sensors measuring different movements. These include sensors on the arm, hand, dumbbell and waist. 
+What needs to be predicted is a class for the movement, defined in 5 different classes (A, B, C, D and E). Where A is the correct movement, and the other ones are incorrectly executed weight lifting.
+
+First the data has to be read in:
+```{r}
+require(caret)
+train <- read.csv(file = "pml-training.csv",na.strings=c("NA","#DIV/0!",""))
+test <- read.csv(file = "pml-testing.csv",na.strings=c("NA","#DIV/0!",""))
+```
+While investigating the data, it shows there are a lot of features that are mostly NA's. Because these will not add information to the predicting the class, these will be removed. The columns with more than 95 % of NA values will be removed. Next to this, the function nearZeroVar is used to determine which columns have (almost) no variance. These columns will also be removed.
+
+By examining the data manually, there are also columns with an index, the name of the participant, and timestamps. Also windows are specified, which were used for the feature extraction, but therefore do not contain information about the movements. These can be removed as well. 
+
+```{r}
+naColumns <- colSums(is.na(train))/dim(train)[1] < 0.95
+trainClean <- train[,naColumns]
+testClean <- test[,naColumns]
+lowVarianceColumns <- nearZeroVar(trainClean)
+trainClean <- trainClean[,-lowVarianceColumns]
+testClean <- testClean[,-lowVarianceColumns]
+trainClean <- trainClean[,-(1:6)] # remove ID, name, etc.
+testClean <- testClean[,-(1:6)]
+```
+
+Then finally the dataset has to be split out in a training set (60%) and validation set (40%):
+```{r}
+set.seed(12345)
+trainIndex <- createDataPartition(trainClean$classe, p = .6, list = FALSE, times = 1)
+trainFinal <- trainClean[trainIndex,]
+validation <- trainClean[-trainIndex,]
+```
+# Classification
+The outcome of the model should be one of the class A, B, C, D or E, therefore the problem is a classification problem. Therefore using classification methods instead of regression methods makes more sense. 
+First the data is preprocessed by centering and scaling the data. This makes it easier to compare, since we need to distinguish relative movements. 
+Furthermore, the data is split in a training and validation set. The validation set will be used to compute the accuracy and out of sample error of the chosen model.
+
+Next to this, a training control function is defined with cross validation. Using cross validation an estimate of the out of sample error can be made, and the bias of the model decreases.
+
+```{r}
+preProc <- preProcess(trainFinal[,-53], method = c("center","scale"))
+trainTransformed <- predict(preProc, trainFinal[,-53])
+validationTransformed <- predict(preProc, validation[,-53])
+validationTransformed$classe <- validation$classe
+trainTransformed$classe <- trainFinal$classe
+controlFunc <- trainControl(method = "cv",number = 5)
+```
+
+Three different models were tried. The first one is the CART model, using the 'rpart' method in Caret. The model is tuned using the complexity variable. By plotting the estimated accuracy from the cross validation against the complexity parameter, one can see the (estimated) results for this model.
+
+```{r}
+modelRpart <- train(classe ~ ., data = trainTransformed, method = "rpart", trControl = controlFunc, tuneLength = 30)
+ggplot(modelRpart)
+```
+
+The plot shows that the lower the complexity parameter, the higher the accuracy, this shows that the model is overfitting. The highest estimated accuracy is about 0.8.
+
+The next model tried is the boosted tree model ('gbm' method in Caret). This model can be tuned using the number of trees (for boosting) and the depth/complexity of the tree. 
+
+gbmGrid <-  expand.grid(interaction.depth = 1:9,
+                        n.trees = (2:5)*50,
+                        shrinkage = 0.1,
+                        n.minobsinnode = 10)
+modelGbm <- train(classe ~ ., data = trainTransformed, method = "gbm", trControl = controlFunc, verbose = FALSE, tuneGrid = gbmGrid)
+
+modelRf <- train(classe ~ ., data = trainTransformed, method = "rf", trControl = controlFunc, tuneLength = 5)
+
+
