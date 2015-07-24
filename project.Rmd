@@ -83,7 +83,7 @@ gbmGrid <-  expand.grid(interaction.depth = 7,
                         shrinkage = 0.1,
                         n.minobsinnode = 10)
 modelGbm <- train(classe ~ ., data = trainTransformed, method = "gbm", trControl = controlFunc, verbose = FALSE, tuneGrid = gbmGrid)
-modelGbm$finalModel
+modelGbm
 ```
 
 The final model that will be tried is the random forest model. 

@@ -140,10 +140,27 @@ modelGbm &lt;- train(classe ~ ., data = trainTransformed, method = &quot;gbm&quo
                         shrinkage = 0.1,
                         n.minobsinnode = 10)
 modelGbm &lt;- train(classe ~ ., data = trainTransformed, method = &quot;gbm&quot;, trControl = controlFunc, verbose = FALSE, tuneGrid = gbmGrid)
-modelGbm$finalModel</code></pre>
-<pre><code>## A gradient boosted model with multinomial loss function.
-## 200 iterations were performed.
-## There were 52 predictors of which 52 had non-zero influence.</code></pre>
+modelGbm</code></pre>
+<pre><code>## Stochastic Gradient Boosting 
+## 
+## 11776 samples
+##    52 predictor
+##     5 classes: 'A', 'B', 'C', 'D', 'E' 
+## 
+## No pre-processing
+## Resampling: Cross-Validated (5 fold) 
+## Summary of sample sizes: 9420, 9421, 9420, 9423, 9420 
+## Resampling results
+## 
+##   Accuracy  Kappa      Accuracy SD  Kappa SD   
+##   0.985903  0.9821683  0.001395618  0.001763059
+## 
+## Tuning parameter 'n.trees' was held constant at a value of 200
+##  7
+## Tuning parameter 'shrinkage' was held constant at a value of 0.1
+## 
+## Tuning parameter 'n.minobsinnode' was held constant at a value of 10
+## </code></pre>
 <p>The final model that will be tried is the random forest model.</p>
 <pre class="r"><code>modelRf &lt;- train(classe ~ ., data = trainTransformed, method = &quot;rf&quot;, trControl = controlFunc, tuneLength = 5)</code></pre>
 <pre><code>## Loading required package: randomForest
